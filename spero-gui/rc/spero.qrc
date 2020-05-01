@@ -1,0 +1,17 @@
+<RCC>
+  <qresource prefix="icons">
+    <file>battery_icon.png</file>
+    <file>up.png</file>
+    <file>rol.png</file>
+    <file>ror.png</file>
+    <file>left.png</file>
+    <file>down.png</file>
+    <file>right.png</file>
+    <file>Logo_petra_lowres.png</file>
+  </qresource>
+  <qresource prefix="images">
+    <file>contoh_lorong.jpg</file>
+    <file>contoh_kamera_bawah.jpg</file>
+    <file>contoh_video_call.jpeg</file>
+  </qresource>
+</RCC>
