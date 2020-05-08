@@ -2,6 +2,7 @@
 #define WMAIN_H
 
 #include <QWidget>
+#include <QKeyEvent>
 
 namespace Ui {
 class wMain;
@@ -14,7 +15,8 @@ class wMain : public QWidget
 public:
     explicit wMain(QWidget *parent = nullptr);
     ~wMain();
-
+protected:
+    void keyPressEvent(QKeyEvent *event);
 private:
     Ui::wMain *ui;
 };
