@@ -10,7 +10,9 @@
 
 speroGUI::speroGUI(QWidget *parent) :
     QWidget(parent),
-    ui(new Ui::speroGUI)
+    ui(new Ui::speroGUI),
+    pubConnection(false),
+    subConnection(false)
 {
     ui->setupUi(this);
     // Beberapa elemen harus diset readonly
@@ -33,14 +35,31 @@ speroGUI::speroGUI(QWidget *parent) :
     getConfig();
 
     // berikut berhubungan dengan mqtt
-    m_client = new QMqttClient(this);
-    qDebug() << QString("Will use server at %1:1883").arg(robotIP);
-    m_client->setHostname(robotIP);
-    m_client->setPort(1883);
-    connect(m_client, &QMqttClient::stateChanged, this, &speroGUI::updateLogStateChange);
-    connect(m_client, &QMqttClient::disconnected, this, &speroGUI::brokerDisconnected);
+    m_publisher = new QMqttClient(this);
+    qDebug() << QString("Will use server at %1:1883 for publishing").arg(robotIP);
+    m_publisher->setHostname(robotIP);
+    m_publisher->setPort(1883);
+    connect(m_publisher, &QMqttClient::stateChanged, this, &speroGUI::updateLogStateChange);
+    connect(m_publisher, &QMqttClient::disconnected, this, &speroGUI::brokerDisconnected);
+    connect(m_publisher, &QMqttClient::connected, this, &speroGUI::pubConnected);
+    connect(m_publisher, &QMqttClient::disconnected, this, &speroGUI::pubDisconnected);
+    m_subscriber = new QMqttClient(this);
+    qDebug() << QString("Will use server at %1:1883 for subscription").arg(robotIP);
+    m_subscriber->setHostname(robotIP);
+    m_subscriber->setPort(1883);
+    connect(m_subscriber, &QMqttClient::stateChanged, this, &speroGUI::updateLogStateChange);
+    connect(m_subscriber, &QMqttClient::disconnected, this, &speroGUI::brokerDisconnected);
+    connect(m_subscriber, &QMqttClient::connected, this, &speroGUI::subConnected);
+    connect(m_subscriber, &QMqttClient::disconnected, this, &speroGUI::subDisconnected);
+    connect(m_subscriber, &QMqttClient::messageReceived, this, &speroGUI::newMsg);
     qDebug() << QString("Will now connect to the server...");
-    m_client->connectToHost();
+    m_publisher->connectToHost();
+    m_subscriber->connectToHost();
+
+    // lalu setup pinger
+    m_ping = new QTimer(this);
+    m_ping->setInterval(ROBOT_PING_INTERVAL_MS);    //mungkin cukup tiap 1000ms kirim ping ke robot
+    connect(m_ping, SIGNAL(timeout()), this, SLOT(sendPing()));
 
     // berikut berhubungan dengan joystick
     QLoggingCategory::setFilterRules(QStringLiteral("qt.gamepad.debug=true"));
@@ -73,8 +92,50 @@ speroGUI::speroGUI(QWidget *parent) :
 speroGUI::~speroGUI()
 {
     delete m_gamepad;
-    delete m_client;
+    delete m_publisher;
+    delete m_subscriber;
+    delete m_ping;
     delete ui;
+}
+
+void speroGUI::pubConnected()
+{
+    pubConnection = true;
+}
+
+void speroGUI::pubDisconnected()
+{
+    pubConnection = false;
+}
+
+void speroGUI::subDisconnected()
+{
+    subConnection = false;
+    ui->cbConnected->setChecked(false);
+}
+
+void speroGUI::subConnected()
+{
+    subConnection = true;
+    ui->cbConnected->setChecked(true);
+    auto subscription = m_subscriber->subscribe(QString(TOPIC_STATUS));
+    if (!subscription) {
+            QMessageBox::critical(this, QLatin1String("Error"), QLatin1String("Could not subscribe. Is there a valid connection?"));
+            return;
+    }
+}
+
+/* Kirim sinyal secara periodik ke robot */
+void speroGUI::sendPing()
+{
+
+}
+
+void speroGUI::newMsg(const QByteArray &message, const QMqttTopicName &topic)
+{
+    if(topic.name().contains(TOPIC_STATUS)){
+        qDebug() << "[INFO] Menerima pesan MQTT dari robot" << "\n";
+    }
 }
 
 void speroGUI::pbHaltClicked()
@@ -92,12 +153,18 @@ void speroGUI::pbHaltClicked()
 
 void speroGUI::updateLogStateChange()
 {
-    const QString content = QDateTime::currentDateTime().toString()
+    const QString content1 = QDateTime::currentDateTime().toString()
                     + QLatin1String(": State Change")
-                    + QString::number(m_client->state())
+                    + QString::number(m_publisher->state())
                     + QLatin1Char('\n');
-    qDebug() << (content);
-    ui->console->appendPlainText(content);
+    const QString content2 = QDateTime::currentDateTime().toString()
+                    + QLatin1String(": State Change")
+                    + QString::number(m_subscriber->state())
+                    + QLatin1Char('\n');
+    qDebug() << (content1);
+    qDebug() << (content2);
+    ui->console->appendPlainText(content1);
+    ui->console->appendPlainText(content2);
 }
 
 void speroGUI::brokerDisconnected()
@@ -301,7 +368,7 @@ void speroGUI::prepareCmd(int m)
 void speroGUI::sendCmd(QString cmd)
 {
     // modifikasi dari on_buttonPublish_clicked()
-    if (m_client->publish(QString(TOPIC), cmd.toUtf8()) == -1)
+    if (m_publisher->publish(QString(TOPIC_JS), cmd.toUtf8()) == -1)
         qDebug() << QString("[INFO] Error, could not send the command!");
 }
 

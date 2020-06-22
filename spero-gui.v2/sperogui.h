@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QtMqtt/QMqttClient>
 #include <QGamepad>
+#include <QTimer>
 #include "sperodef.h"
 
 namespace Ui {
@@ -27,6 +28,12 @@ public slots:
     // berikut ini berhubungan dengan MQTT
     void updateLogStateChange();
     void brokerDisconnected();
+    void sendPing();
+    void pubConnected();
+    void pubDisconnected();
+    void subConnected();
+    void subDisconnected();
+    void newMsg(const QByteArray &message, const QMqttTopicName &topic);
     // berikut berhubungan dengan joystick:
     void getRX(double val);
     void getRY(double val);
@@ -39,8 +46,10 @@ public slots:
 private:
     // main members
     Ui::speroGUI *ui;
-    QMqttClient *m_client;
+    QMqttClient *m_publisher;
+    QMqttClient *m_subscriber;
     QGamepad *m_gamepad;
+    QTimer *m_ping; // dipakai untuk menjaga koneksi dengan robot
     // parameter konfigurasi:
     QString robotIP;
     QString omnicamIP;
@@ -53,6 +62,8 @@ private:
     void prepareCmd(int m); // m bisa digunakan untuk mendeteksi joystick yang kiri atau kanan
     void sendCmd(QString cmd);
     void sendGreetings();
+    bool pubConnection;
+    bool subConnection;
 };
 
 #endif // SPEROGUI_H
