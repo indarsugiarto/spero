@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui mqtt gamepad
+QT       += core gui mqtt gamepad network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -26,14 +26,17 @@ CONFIG += c++11
 
 SOURCES += \
         main.cpp \
-        sperogui.cpp
+        sperogui.cpp \
+    batterywarning.cpp
 
 HEADERS += \
         sperogui.h \
-    sperodef.h
+    sperodef.h \
+    batterywarning.h
 
 FORMS += \
-        sperogui.ui
+        sperogui.ui \
+    batterywarning.ui
 
 RESOURCES += \
 	rc/spero.qrc

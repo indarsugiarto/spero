@@ -16,5 +16,7 @@
         <file>contoh_lorong.jpg</file>
         <file>contoh_kamera_bawah.jpg</file>
         <file>contoh_video_call.jpeg</file>
+        <file>accu.png</file>
+        <file>lightning.png</file>
     </qresource>
 </RCC>
